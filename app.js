@@ -6,17 +6,17 @@ let videoVisibility = true;
 let detecting = false;
 
 // global HTML element
-const toggleVideoEl = document.getElementById('toggleVideoEl');
-const toggleDetectingEl = document.getElementById('toggleDetectingEl');
+const toggleVideoEl = document.getElementById("toggleVideoEl");
+const toggleDetectingEl = document.getElementById("toggleDetectingEl");
 
 // set cursor to wait until video elment is loaded
-document.body.style.cursor = 'wait';
+document.body.style.cursor = "wait";
 
 // The preload() function if existed is called before the setup() function
 function preload() {
   // create detector object from "cocossd" model
-  detector = ml5.objectDetector('cocossd');
-  console.log('detector object is loaded');
+  detector = ml5.objectDetector("cocossd");
+  console.log("detector object is loaded");
 }
 
 // The setup() function is called once when the program starts.
@@ -27,12 +27,14 @@ function setup() {
   // The element is separate from the canvas and is displayed by default.
   video = createCapture(VIDEO);
   video.size(640, 480);
-  console.log('video element is created');
-  video.elt.addEventListener('loadeddata', function() {
+  console.log("video element is created");
+  video.elt.addEventListener("loadeddata", function () {
     // set cursor back to default
     if (video.elt.readyState >= 2) {
-      document.body.style.cursor = 'default';
-      console.log('video element is ready! Click "Start Detecting" to see the magic!');
+      document.body.style.cursor = "default";
+      console.log(
+        'video element is ready! Click "Start Detecting" to see the magic!'
+      );
     }
   });
 }
@@ -41,10 +43,13 @@ function setup() {
 function draw() {
   if (!video || !detecting) return;
   // draw video frame to canvas and place it at the top-left corner
-  image(video, 0, 0);
+  // image(video, 0, 0);
+  background(0, 0, 0);
   // draw all detected objects to the canvas
   for (let i = 0; i < detections.length; i++) {
-    drawResult(detections[i]);
+    const detection = detections[i];
+    // if (detection.label != "cell phone") continue;
+    drawResult(detection);
   }
 }
 
@@ -60,14 +65,26 @@ Exaple of an detect object
 }
 */
 function drawResult(object) {
+  drawDetectedObject(object);
   drawBoundingBox(object);
   drawLabel(object);
+}
+
+// draws the rectangle with the object's pixels
+function drawDetectedObject(object) {
+  const detectedObject = video.get(
+    object.x,
+    object.y,
+    object.width,
+    object.height
+  );
+  image(detectedObject, object.x, object.y);
 }
 
 // draw bounding box around the detected object
 function drawBoundingBox(object) {
   // Sets the color used to draw lines.
-  stroke('green');
+  stroke("green");
   // width of the stroke
   strokeWeight(4);
   // Disables filling geometry
@@ -82,7 +99,7 @@ function drawLabel(object) {
   // Disables drawing the stroke
   noStroke();
   // sets the color used to fill shapes
-  fill('white');
+  fill("white");
   // set font size
   textSize(24);
   // draw string to canvas
@@ -97,7 +114,7 @@ function onDetected(error, results) {
   detections = results;
   // keep detecting object
   if (detecting) {
-    detect(); 
+    detect();
   }
 }
 
@@ -111,10 +128,10 @@ function toggleVideo() {
   if (!video) return;
   if (videoVisibility) {
     video.hide();
-    toggleVideoEl.innerText = 'Show Video';
+    toggleVideoEl.innerText = "Show Video";
   } else {
     video.show();
-    toggleVideoEl.innerText = 'Hide Video';
+    toggleVideoEl.innerText = "Hide Video";
   }
   videoVisibility = !videoVisibility;
 }
@@ -123,9 +140,9 @@ function toggleDetecting() {
   if (!video || !detector) return;
   if (!detecting) {
     detect();
-    toggleDetectingEl.innerText = 'Stop Detecting';
+    toggleDetectingEl.innerText = "Stop Detecting";
   } else {
-    toggleDetectingEl.innerText = 'Start Detecting';
+    toggleDetectingEl.innerText = "Start Detecting";
   }
   detecting = !detecting;
 }
