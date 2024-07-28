@@ -139,6 +139,12 @@ function preload() {
 }
 
 function getCanvasWidthHeight() {
+  if (window.innerWidth > 640) {
+    return {
+      width: 640,
+      height: 480,
+    };
+  }
   const ww = window.innerWidth - 5;
   // we want a 640x480 aspect ratio
   // 640 --- 480
