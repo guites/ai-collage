@@ -28,11 +28,15 @@
 
 <body>
   <main>
-    <section>
+    <section id="targets">
+      <p>O que você quer detectar?</p>
+      <select id="detection-target">
+
+      </select>
     </section>
     <section id="feeds">
       <div>
-        <h2>🐱 CatCam 🐱</h2>
+        <h2 id="target-title">🐱 CatCam 🐱</h2>
         <button id="toggleDetectingEl" onclick="toggleDetecting()">Start Detecting</button>
         <div id="canvasWrapper"></div>
       </div>
@@ -49,8 +53,8 @@
         </span> para que elas apareçam aqui!</p>
       <div id="generate-collage-wrapper">
         <div>
-          <label for="cat-name">Digite o nome do seu gato: </label>
-          <input type="text" id="cat-name" placeholder="Senhor Pantufas" />
+          <label for="cat-name">Digite o nome da sua colagem: </label>
+          <input type="text" id="cat-name" placeholder="Minha colagem lindona" />
         </div>
         <button id="create-collage-btn">Criar colagem!</button>
       </div>

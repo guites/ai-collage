@@ -15,6 +15,11 @@ main {
   display: flex;
 }
 
+#feeds > div {
+  max-width: 50%;
+  width: 100%;
+}
+
 #snapshots {
   display: flex;
   flex-wrap: wrap;
@@ -135,4 +140,26 @@ input {
 
 #create-collage-btn {
   margin-top: 15px;
+}
+
+#targets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media only screen and (max-width: 1284px) {
+  body {
+    background-color: lightblue;
+  }
+  #feeds {
+    flex-direction: column;
+    align-items: center;
+  }
+  #feeds > div {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 }

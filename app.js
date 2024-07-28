@@ -4,19 +4,126 @@ let detector = null; // detector object
 let detections = []; // store detection result
 let videoVisibility = true;
 let detecting = false;
+// based on https://github.com/tensorflow/tfjs-models/blob/master/coco-ssd/src/classes.ts
+const cocoEmojis = {
+  person: "🧑",
+  bicycle: "🚲",
+  car: "🚗",
+  motorcycle: "🏍️",
+  airplane: "✈️",
+  bus: "🚌",
+  train: "🚆",
+  truck: "🚚",
+  boat: "🛥️",
+  "traffic light": "🚦",
+  // "fire hydrant": "🧯",
+  "stop sign": "🛑",
+  // "parking meter",
+  // "bench",
+  bird: "🐦",
+  cat: "🐈",
+  dog: "🐶",
+  horse: "🐴",
+  sheep: "🐑",
+  cow: "🐮",
+  elephant: "🐘",
+  bear: "🐻",
+  zebra: "🦓",
+  giraffe: "🦒",
+  backpack: "🎒",
+  umbrella: "☂️",
+  handbag: "👜",
+  tie: "👔",
+  suitcase: "💼",
+  frisbee: "🥏",
+  skis: "🎿",
+  snowboard: "🏂",
+  "sports ball": "⚽",
+  kite: "🪁",
+  // "baseball bat",
+  // "baseball glove",
+  skateboard: "🛹",
+  surfboard: "🏄",
+  "tennis racket": "🏓",
+  bottle: "🍾",
+  "wine glass": "🍷",
+  cup: "🥤",
+  fork: "🍴",
+  knife: "🍴",
+  spoon: "🥄",
+  bowl: "🥣",
+  banana: "🍌",
+  apple: "🍎",
+  sandwich: "🥪",
+  orange: "🍊",
+  broccoli: "🥦",
+  carrot: "🥕",
+  "hot dog": "🌭",
+  pizza: "🍕",
+  donut: "🍩",
+  cake: "🎂",
+  chair: "🪑",
+  couch: "🛋️",
+  "potted plant": "🪴",
+  bed: "🛏️",
+  "dining table": "𓊳",
+  toilet: "🚽",
+  tv: "📺",
+  laptop: "💻",
+  mouse: "🐭",
+  remote: "📲",
+  keyboard: "⌨️",
+  "cell phone": "📱",
+  // "microwave",
+  // "oven",
+  // "toaster",
+  // "sink",
+  refrigerator: "❄️",
+  book: "📕",
+  clock: "⏰",
+  // "vase",
+  scissors: "✂️",
+  "teddy bear": "🧸",
+  // "hair drier",
+  toothbrush: "🪥",
+};
+const cocoClasses = Object.keys(cocoEmojis);
+let targetClass = "cat";
 
 // global HTML element
 const toggleVideoEl = document.getElementById("toggleVideoEl");
 const toggleDetectingEl = document.getElementById("toggleDetectingEl");
-const cropsWrapper = document.getElementById("snapshots");
-const collageWrapper = document.getElementById("collage-wrapper");
-const collageSnapshots = document.getElementById("collage-snapshots");
-const createCollageBtn = document.getElementById("create-collage-btn");
+const cropsWrapperEl = document.getElementById("snapshots");
+const collageWrapperEl = document.getElementById("collage-wrapper");
+const collageSnapshotsEl = document.getElementById("collage-snapshots");
+const createCollageBtnEl = document.getElementById("create-collage-btn");
 const catNameEl = document.getElementById("cat-name");
 const catNameHeadingEl = document.getElementById("cat-name-heading");
+const detectionTargetEl = document.getElementById("detection-target");
+const detectionTargetTitleEl = document.getElementById("target-title");
+
+// populates the detection target dropdown
+cocoClasses.forEach((cocoClass) => {
+  const option = document.createElement("option");
+  option.value = cocoClass;
+  option.innerText = cocoClass;
+  if (cocoClass == targetClass) option.selected = "true";
+  detectionTargetEl.appendChild(option);
+});
+detectionTargetEl.addEventListener("change", (e) => {
+  const selected = e.target.value;
+  let newTitle = cocoEmojis[selected];
+  const camelCasedTitle = selected
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join("");
+  newTitle += ` ${camelCasedTitle}Cam ${cocoEmojis[selected]}`;
+  detectionTargetTitleEl.innerText = newTitle;
+  targetClass = selected;
+});
 
 // initializes the masonry for the collage
-const msnry = new Masonry(collageSnapshots, {
+const msnry = new Masonry(collageSnapshotsEl, {
   itemSelector: ".cat-snapshot",
   columnWidth: 205,
 });
@@ -31,16 +138,27 @@ function preload() {
   console.log("detector object is loaded");
 }
 
+function getCanvasWidthHeight() {
+  const ww = window.innerWidth - 5;
+  // we want a 640x480 aspect ratio
+  // 640 --- 480
+  // ww  --- ?
+  // 640 * ? = 480 * ww
+  // ? = 480/640 * ww
+  return { width: ww, height: (480 / 640) * ww };
+}
+
 // The setup() function is called once when the program starts.
 function setup() {
   // create canvas element with 640 width and 480 height in pixel
-  const canvas = createCanvas(640, 480);
+  const canvasSize = getCanvasWidthHeight();
+  const canvas = createCanvas(canvasSize.width, canvasSize.height);
   canvas.parent("canvasWrapper");
   // Creates a new HTML5 <video> element that contains the audio/video feed from a webcam.
   // The element is separate from the canvas and is displayed by default.
   video = createCapture(VIDEO);
   video.parent("videoWrapper");
-  video.size(640, 480);
+  video.size(canvasSize.width, canvasSize.height);
   console.log("video element is created");
   video.elt.addEventListener("loadeddata", function () {
     // set cursor back to default
@@ -62,7 +180,7 @@ function draw() {
   // draw all detected objects to the canvas
   for (let i = 0; i < detections.length; i++) {
     const detection = detections[i];
-    if (detection.label != "cat") continue;
+    if (detection.label != targetClass) continue;
     drawResult(detection);
   }
 }
@@ -108,7 +226,7 @@ function stagedImageDiv(imgSrc) {
     e.target.closest(".cat-snapshot").remove();
     msnry.layout();
     const croppedHtml = croppedImageDiv(imgSrc);
-    cropsWrapper.prepend(croppedHtml);
+    cropsWrapperEl.prepend(croppedHtml);
   });
 
   btnDelete.appendChild(deleteIcon);
@@ -136,13 +254,13 @@ function croppedImageDiv(imgSrc) {
   deleteIcon.innerText = "delete";
 
   btnCheck.addEventListener("click", (e) => {
-    if (collageSnapshots.childElementCount >= 9) {
-      alert("Você só pode selecionar 9 imagens para a sua montagem!");
-      return;
-    }
+    // if (collageSnapshotsEl.childElementCount >= 9) {
+    //   alert("Você só pode selecionar 9 imagens para a sua montagem!");
+    //   return;
+    // }
     e.target.closest(".cat-snapshot").remove();
     const staged = stagedImageDiv(imgSrc);
-    collageSnapshots.appendChild(staged);
+    collageSnapshotsEl.appendChild(staged);
     msnry.appended(staged);
   });
 
@@ -162,7 +280,7 @@ function croppedImageDiv(imgSrc) {
 // saves crop as html element
 function saveCrop(detectedObject) {
   const croppedHtml = croppedImageDiv(detectedObject.canvas.toDataURL());
-  cropsWrapper.prepend(croppedHtml);
+  cropsWrapperEl.prepend(croppedHtml);
 }
 
 // draws the rectangle with the object's pixels
@@ -242,13 +360,13 @@ catNameEl.addEventListener("input", (e) => {
   catNameHeadingEl.innerText = e.target.value;
 });
 
-createCollageBtn.addEventListener("click", () => {
+createCollageBtnEl.addEventListener("click", () => {
   const catName = catNameEl.value;
   if (!catName || catName === "") {
-    alert("Digite o nome do seu gato!");
+    alert("Digite o nome da sua colagem!");
     return;
   }
-  if (collageSnapshots.childElementCount < 1) {
+  if (collageSnapshotsEl.childElementCount < 1) {
     alert("Selecione ao menos uma imagem capturada pela webcam!");
     return;
   }
