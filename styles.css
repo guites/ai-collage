@@ -5,3 +5,134 @@ canvas {
 video {
   border: 1px solid blue;
 }
+
+main {
+  max-width: 1284px;
+  margin: auto;
+}
+
+#feeds {
+  display: flex;
+}
+
+#snapshots {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+h2 {
+  text-align: center;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+button,
+label,
+input {
+  font-family: "Poppins", sans-serif;
+}
+
+#toggleDetectingEl,
+#toggleVideoEl {
+  margin: 0px auto 15px;
+  display: block;
+}
+
+.check {
+  color: green;
+}
+
+.delete {
+  color: red;
+}
+
+.action {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  position: absolute;
+  left: 5px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 80%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.action.hidden {
+  visibility: hidden;
+}
+
+.action:first-of-type {
+  top: 5px;
+}
+
+.action:last-of-type {
+  top: 35px;
+}
+
+.cat-snapshot {
+  position: relative;
+  width: 200px;
+  margin: 0 5px 0 0;
+}
+
+.cat-snapshot img {
+  width: 200px;
+  height: auto;
+  border-radius: 5px;
+}
+
+#collage-hint-text {
+  text-align: center;
+}
+
+#collage-snapshots {
+  max-width: 615px;
+  margin: auto;
+}
+/* clearfix */
+#collage-snapshots:after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+#collage-snapshots .cat-snapshot {
+  /* width: initial; */
+  float: left;
+}
+
+#collage-snapshots .cat-snapshot img {
+  /* width: auto; */
+}
+
+#collage-wrapper {
+  max-width: 615px;
+  margin: auto;
+}
+
+#generate-collage-wrapper {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+#generate-collage-wrapper label {
+  margin-right: 5px;
+}
+
+#create-collage-btn {
+  margin-top: 15px;
+}
