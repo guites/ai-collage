@@ -215,6 +215,23 @@ function drawResult(object) {
   saveCrop(detectedObject);
 }
 
+function genImgMask(imgEl) {
+  const maskData = segmentImage(
+    imgEl,
+    mySession,
+    modelInputShape,
+    segmentationLabels
+  );
+  const nCanvas = document.createElement("canvas");
+  nCanvas.width = maskData.width;
+  nCanvas.height = maskData.height;
+  const ctx = nCanvas.getContext("2d");
+  ctx.putImageData(maskData, 0, 0);
+  const img = document.createElement("img");
+  img.src = nCanvas.toDataURL();
+  return img;
+}
+
 function stagedImageDiv(imgSrc) {
   const div = document.createElement("div");
   const img = document.createElement("img");
@@ -265,6 +282,7 @@ function croppedImageDiv(imgSrc) {
     //   return;
     // }
     e.target.closest(".cat-snapshot").remove();
+    const genImgMasking = genImgMask(img);
     const staged = stagedImageDiv(imgSrc);
     collageSnapshotsEl.appendChild(staged);
     msnry.appended(staged);
@@ -367,6 +385,8 @@ catNameEl.addEventListener("input", (e) => {
 });
 
 createCollageBtnEl.addEventListener("click", () => {
+  // TODO: run stuff like segmentImage(document.querySelector("div.cat-snapshot:nth-child(1) > img:nth-child(1)"), mySession, modelInputShape, segmentationLabels)
+  // in order to segment the images and create the collage
   const catName = catNameEl.value;
   if (!catName || catName === "") {
     alert("Digite o nome da sua colagem!");
@@ -377,3 +397,121 @@ createCollageBtnEl.addEventListener("click", () => {
     return;
   }
 });
+
+async function segmentImage(imageEl, session, inputShape, labels) {
+  const [modelWidth, modelHeight] = inputShape.slice(2);
+  const maxSize = Math.max(modelWidth, modelHeight); // max size in input model
+  const [input, xRatio, yRatio] = preprocessing(
+    imageEl,
+    modelWidth,
+    modelHeight
+  ); // preprocess frame
+
+  const tensor = new ort.Tensor("float32", input.data32F, inputShape); // to ort.Tensor
+  const config = new ort.Tensor(
+    "float32",
+    new Float32Array([
+      80, // num class
+      topk, // topk per class
+      iouThreshold, // iou threshold
+      scoreThreshold, // score threshold
+    ])
+  ); // nms config tensor
+  const { output0, output1 } = await session.net.run({ images: tensor }); // run session and get output layer. out1: detect layer, out2: seg layer
+  const { selected } = await session.nms.run({
+    detection: output0,
+    config: config,
+  }); // perform nms and filter boxes
+  const boxes = []; // ready to draw boxes
+  const overlay = cv.Mat.zeros(modelHeight, modelWidth, cv.CV_8UC4); // create overlay to draw segmentation object
+
+  // looping through output
+  for (let idx = 0; idx < selected.dims[1]; idx++) {
+    const data = selected.data.slice(
+      idx * selected.dims[2],
+      (idx + 1) * selected.dims[2]
+    ); // get rows
+    let box = data.slice(0, 4); // det boxes
+    const scores = data.slice(4, 4 + numClass); // det classes probability scores
+    const score = Math.max(...scores); // maximum probability scores
+    const label = scores.indexOf(score); // class id of maximum probability scores
+
+    if (label != targetClass) continue;
+    const color = colors.get(label); // get color
+
+    box = overflowBoxes(
+      [
+        box[0] - 0.5 * box[2], // before upscale x
+        box[1] - 0.5 * box[3], // before upscale y
+        box[2], // before upscale w
+        box[3], // before upscale h
+      ],
+      maxSize
+    ); // keep boxes in maxSize range
+
+    const [x, y, w, h] = overflowBoxes(
+      [
+        Math.floor(box[0] * xRatio), // upscale left
+        Math.floor(box[1] * yRatio), // upscale top
+        Math.floor(box[2] * xRatio), // upscale width
+        Math.floor(box[3] * yRatio), // upscale height
+      ],
+      maxSize
+    ); // upscale boxes
+
+    boxes.push({
+      label: labels[label],
+      probability: score,
+      color: color,
+      bounding: [x, y, w, h], // upscale box
+    }); // update boxes to draw later
+
+    const mask = new ort.Tensor(
+      "float32",
+      new Float32Array([
+        ...box, // original scale box
+        ...data.slice(4 + numClass), // mask data
+      ])
+    ); // mask input
+    const maskConfig = new ort.Tensor(
+      "float32",
+      new Float32Array([
+        maxSize,
+        x, // upscale x
+        y, // upscale y
+        w, // upscale width
+        h, // upscale height
+        ...Colors.hexToRgba(color, 120), // color in RGBA
+      ])
+    ); // mask config
+    const { mask_filter } = await session.mask.run({
+      detection: mask,
+      mask: output1,
+      config: maskConfig,
+    }); // perform post-process to get mask
+
+    const mask_mat = cv.matFromArray(
+      mask_filter.dims[0],
+      mask_filter.dims[1],
+      cv.CV_8UC4,
+      mask_filter.data
+    ); // mask result to Mat
+
+    cv.addWeighted(overlay, 1, mask_mat, 1, 0, overlay); // add mask to overlay
+    mask_mat.delete(); // delete unused Mat
+  }
+  const mask_img = new ImageData(
+    new Uint8ClampedArray(overlay.data),
+    overlay.cols,
+    overlay.rows
+  ); // create image data from mask overlay
+
+  // ctx.putImageData(mask_img, 0, 0); // put overlay to canvas
+
+  // renderBoxes(ctx, boxes); // draw boxes after overlay added to canvas
+
+  input.delete(); // delete unused Mat
+  overlay.delete(); // delete unused Mat
+
+  return mask_img;
+}
