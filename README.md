@@ -2,7 +2,7 @@
 
 Este app combina um modelo de detecção de objetos com o uso da webcam, e bate fotos automaticamente sempre que detectar o **objeto de interesse**.
 
-Os objetos disponíveis para detecção são baseados nas classes disponíveis no datasets COCO (<https://cocodataset.org/#home>).
+Os objetos disponíveis para detecção são baseados nas classes disponíveis no dataset COCO (<https://cocodataset.org/#home>).
 
 As fotos tiradas podem ser baixadas individualmente ou usadas para criação de uma colagem.
 
